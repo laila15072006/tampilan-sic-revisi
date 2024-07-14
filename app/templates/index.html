@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-5">Data Kelas</h1>
+
+<!-- Button to Open the Modal -->
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#registerModal">
+    Register New Data
+  </button>
+<br>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col">No.</th>
+            <th scope="col">Nama Kelas</th>
+            <th scope="col">Jumlah Siswa</th>
+            <th scope="col">Jumlah Siswa Melanggar</th>
+            <th scope="col">Aksi</th>
+            <th scope="col">Detail Siswa</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for class in classes %}
+        <tr>
+            <th scope="row">{{ loop.index }}</th>
+            <td>{{ class.nama }}</td>
+            <td>{{ class.total_siswa }}</td>
+            <td>{{ class.total_pelanggaran }}</td>
+            <td>
+                <button class="btn btn-warning" data-toggle="modal" data-target="#editModal" onclick="editKelas('{{ class.id }}', '{{ class.nama }}')">Edit</button>
+                <form method="POST" action="{{ url_for('main.delete_kelas', kelas_id=class.id) }}" style="display:inline-block;">
+                    <input type="hidden" name="csrf_token" value = "{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </td>
+            <td>
+                <a href="{{url_for('main.get_siswa_in_kelas',kelas_id=class.id) }}" class="btn btn-info">Detail</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- The Modal for Register -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalLabel">Register New Data</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{{ url_for('main.index') }}" id="registerForm">
+        <input type="hidden" name="csrf_token" value = "{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label for="className" class="form-label" >Nama Kelas</label>
+            <input type="text" class="form-control" name="nama" id="className" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- The Modal for Edit -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel">Edit Data</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="" id="editForm">
+        <input type="hidden" name="csrf_token" value = "{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label for="editClassName" class="form-label" >Nama Kelas</label>
+            <input type="text" class="form-control" name="nama" id="editClassName" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function editKelas(id, nama) {
+        document.getElementById('editClassName').value = nama;
+        document.getElementById('editForm').action = `/edit_kelas/${id}`;
+        $('#editModal').modal('show');
+    }
+</script>
+{% endblock %}
