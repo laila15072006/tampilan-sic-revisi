@@ -4,9 +4,11 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import func, and_, case
 import pendulum
+import joblib
 
 main = Blueprint('main', __name__)
 csrf = CSRFProtect()
+kmeans = joblib.load('app/kmeans_model.pkl')
 
 @main.route('/', methods=['GET', 'POST'])
 def index():
@@ -42,7 +44,38 @@ def index():
 
     return render_template('index.html', classes=class_list)
 
+
+@main.route('/clustering', methods=['GET', 'POST'])
+def clustering():
+    if request.method == 'POST':
+        data = request.get_json()
+        siswa = data.get('siswa')
+        pelanggar = data.get('pelanggar')
+        # print(siswa, pelanggar)
+        result = kmeans.predict([[siswa, pelanggar]])
+        print(result)
+        return jsonify({'result': int(result[0])})
+
+    now_jakarta = pendulum.now('Asia/Jakarta')
+    start_of_day_jakarta = now_jakarta.start_of('day').in_timezone('UTC')
+    end_of_day_jakarta = now_jakarta.end_of('day').in_timezone('UTC')
+
+    # Query to count the number of students in each class and get the class name
+    classes = db.session.query(
+        Kelas.id,
+        Kelas.nama, 
+        func.count(Siswa.id).label('total_siswa'),
+        func.sum(case((DataScan.pelanggaran == True, 1), else_=0)).label('total_pelanggaran')
+    ).outerjoin(Siswa, Kelas.id == Siswa.id_kelas
+    ).outerjoin(DataScan, and_(
+        DataScan.id_siswa == Siswa.id,
+        DataScan.created_at >= start_of_day_jakarta,
+        DataScan.created_at <= end_of_day_jakarta
+    )).group_by(Kelas.id).all()
+    class_list = [{'id': cls.id, 'nama': cls.nama, 'total_siswa': cls.total_siswa, 'total_pelanggaran': cls.total_pelanggaran} for cls in classes]
     
+    return render_template('clustering.html', classes=class_list)
+
 @main.route('/edit_kelas/<int:kelas_id>', methods=['POST'])
 def edit_kelas(kelas_id):
     kelas = Kelas.query.get_or_404(kelas_id)

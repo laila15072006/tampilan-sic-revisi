@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="mt-5">Clustering Data Kelas</h1>
+<br>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col">No.</th>
+            <th scope="col">Nama Kelas</th>
+            <th scope="col">Jumlah Siswa</th>
+            <th scope="col">Jumlah Siswa Melanggar</th>
+            <th scope="col">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for class in classes %}
+        <tr>
+            <th scope="row">{{ loop.index }}</th>
+            <td>{{ class.nama }}</td>
+            <td>{{ class.total_siswa }}</td>
+            <td>{{ class.total_pelanggaran }}</td>
+            <td>
+                <button class="btn btn-primary" data-toggle="modal" data-target="#clusteringModal" onclick="clusterProcess('{{ class.total_siswa }}', '{{ class.total_pelanggaran }}')">Process</button>
+                <span id="csrf_token" hidden>{{ csrf_token() }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="modal fade" id="clusteringModal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLabel">Clustering Result</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-6">
+                <h5>Original Data</h5>
+                <p>Total Siswa: <span id="totalSiswa"></span></p>
+                <p>Total Siswa Melanggar: <span id="totalPelanggaran"></span></p>
+                </div>
+                <div class="col-md-6">
+                <h5>Clustering Result</h5>
+                <p><span id="clusterResult"></span></p>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function clusterProcess(siswa,pelanggar){
+        fetch('/clustering',{
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.getElementById('csrf_token').innerText
+            },
+            body: JSON.stringify({
+                siswa: siswa,
+                pelanggar: pelanggar
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.result == '0'){
+                document.getElementById('clusterResult').innerText = "Kelas Bahaya";
+                document.getElementById('clusterResult').classList.add('text-danger');
+                document.getElementById('clusterResult').classList.remove('text-success');
+            }
+            else if(data.result == '1'){
+                document.getElementById('clusterResult').innerText = "Kelas Aman";
+                document.getElementById('clusterResult').classList.add('text-success');
+                document.getElementById('clusterResult').classList.remove('text-danger');
+            }
+            else{
+                document.getElementById('clusterResult').innerText = "Kelas Aman";
+                document.getElementById('clusterResult').classList.add('text-success');
+                document.getElementById('clusterResult').classList.remove('text-danger');
+            }
+
+            document.getElementById('totalSiswa').innerText = siswa;
+            document.getElementById('totalPelanggaran').innerText = pelanggar;
+             
+            $('#clusteringModal').modal('show');
+        });
+    }
+</script>
+{% endblock %}
